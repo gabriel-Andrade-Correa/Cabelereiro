@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbearia Miguel Magnane - Agendamento</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/@supabase/supabase-js"></script>
+    
+    <!-- FullCalendar Bundle -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/pt-br.global.min.js'></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-cut"></i>
+                <h1>Barbearia Miguel Magnane</h1>
+            </div>
+            <p class="subtitle">Estilo e Precisão em Cada Corte</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="cadastro">
+                <i class="fas fa-user-plus"></i> Novo Cliente
+            </button>
+            <button class="tab-btn" data-tab="agendamento">
+                <i class="fas fa-calendar-alt"></i> Agendar Horário
+            </button>
+        </div>
+
+        <div class="tab-content" id="cadastro">
+            <form id="cadastroForm" class="form">
+                <div class="form-group">
+                    <label for="nome"><i class="fas fa-user"></i> Nome Completo:</label>
+                    <input type="text" id="nome" required placeholder="Digite seu nome completo">
+                </div>
+                <div class="form-group">
+                    <label for="telefone"><i class="fas fa-phone"></i> Telefone/WhatsApp:</label>
+                    <input type="tel" id="telefone" required placeholder="(00) 00000-0000">
+                </div>
+                <div class="form-group">
+                    <label for="servico"><i class="fas fa-list"></i> Serviço Principal:</label>
+                    <select id="servico" required>
+                        <option value="">Selecione o serviço</option>
+                        <option value="corte">Corte de Cabelo</option>
+                        <option value="barba">Barba</option>
+                        <option value="combo">Corte + Barba</option>
+                        <option value="pigmentacao">Pigmentação</option>
+                        <option value="hidratacao">Hidratação</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">
+                    <i class="fas fa-save"></i> Cadastrar
+                </button>
+            </form>
+        </div>
+
+        <div class="tab-content" id="agendamento" style="display: none;">
+            <div class="calendar-header">
+                <h2><i class="fas fa-clock"></i> Horários Disponíveis</h2>
+                <p class="calendar-info">Segunda a Sábado, das 9h às 18h</p>
+            </div>
+            <div id="calendar"></div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <p><i class="fas fa-map-marker-alt"></i> Rua da Barbearia, 123 - Centro</p>
+            <p><i class="fas fa-phone"></i> (00) 0000-0000</p>
+            <p><i class="fab fa-whatsapp"></i> (00) 00000-0000</p>
+        </div>
+    </footer>
+
+    <div class="event-modal" id="eventModal">
+        <div class="event-modal-content">
+            <div class="event-modal-header">
+                <i class="fas fa-calendar-check"></i>
+                <h3>Detalhes do Agendamento</h3>
+            </div>
+            <div class="event-modal-body">
+                <div class="event-detail">
+                    <i class="fas fa-user"></i>
+                    <span id="modalClientName"></span>
+                </div>
+                <div class="event-detail">
+                    <i class="fas fa-cut"></i>
+                    <span id="modalService"></span>
+                </div>
+                <div class="event-detail">
+                    <i class="fas fa-clock"></i>
+                    <span id="modalTime"></span>
+                </div>
+                <div class="event-detail">
+                    <i class="fas fa-money-bill"></i>
+                    <span id="modalPrice"></span>
+                </div>
+            </div>
+            <div class="event-modal-footer">
+                <button class="modal-btn cancel" id="cancelAppointment">Cancelar Agendamento</button>
+                <button class="modal-btn close" id="closeModal">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html> 
