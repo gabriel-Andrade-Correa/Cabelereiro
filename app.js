@@ -301,9 +301,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Verificar se já está logado
 function checkAdminStatus() {
-    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
     if (isAdmin) {
         showAdminArea();
+    } else {
+        hideAdminArea();
     }
 }
 
@@ -331,29 +333,23 @@ loginForm.addEventListener('click', (e) => {
 // Submeter login
 loginForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    console.log('Form submitted'); // Debug
     
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
 
-    console.log('Username:', username); // Debug
-    console.log('Password:', password); // Debug
-
     if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-        console.log('Login successful'); // Debug
-        localStorage.setItem('isAdmin', 'true');
+        sessionStorage.setItem('isAdmin', 'true');
         showAdminArea();
         loginForm.classList.remove('active');
         loginForm.reset();
     } else {
-        console.log('Login failed'); // Debug
         alert('Usuário ou senha incorretos!');
     }
 });
 
 // Logout
 logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('isAdmin');
+    sessionStorage.removeItem('isAdmin');
     hideAdminArea();
 });
 
