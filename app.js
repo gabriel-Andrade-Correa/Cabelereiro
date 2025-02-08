@@ -133,116 +133,110 @@ async function handleTimeSelection(date, time) {
         return;
     }
 
-    // Criar e mostrar o modal de seleção de serviços
-    const serviceModal = document.createElement('div');
-    serviceModal.className = 'service-select-modal active';
-    serviceModal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-cut"></i> Selecione o Serviço</h3>
-            </div>
-            <div class="modal-body">
-                <div class="service-grid">
-                    <div class="service-card" data-service="corte">
-                        <i class="fas fa-cut"></i>
-                        <h4>Corte de Cabelo</h4>
-                        <p class="duration">30 minutos</p>
-                        <p class="price">R$ 45,00</p>
-                    </div>
-                    <div class="service-card" data-service="barba">
-                        <i class="fas fa-razor"></i>
-                        <h4>Barba</h4>
-                        <p class="duration">30 minutos</p>
-                        <p class="price">R$ 35,00</p>
-                    </div>
-                    <div class="service-card" data-service="combo">
-                        <i class="fas fa-star"></i>
-                        <h4>Corte + Barba</h4>
-                        <p class="duration">60 minutos</p>
-                        <p class="price">R$ 70,00</p>
-                    </div>
-                    <div class="service-card" data-service="pigmentacao">
-                        <i class="fas fa-paint-brush"></i>
-                        <h4>Pigmentação</h4>
-                        <p class="duration">60 minutos</p>
-                        <p class="price">R$ 80,00</p>
-                    </div>
-                    <div class="service-card" data-service="hidratacao">
-                        <i class="fas fa-tint"></i>
-                        <h4>Hidratação</h4>
-                        <p class="duration">30 minutos</p>
-                        <p class="price">R$ 50,00</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn close">Cancelar</button>
-            </div>
-        </div>
-    `;
+    // Fechar modal de horários
+    timeSelectModal.classList.remove('active');
 
-    document.body.appendChild(serviceModal);
-
-    // Adicionar eventos aos cards de serviço
+    // Mostrar modal de seleção de serviços
+    const serviceModal = document.getElementById('serviceSelectModal');
     const serviceCards = serviceModal.querySelectorAll('.service-card');
-    serviceCards.forEach(card => {
-        card.addEventListener('click', async () => {
-            const servico = card.dataset.service;
-            
-            // Remover o modal de serviços
-            serviceModal.remove();
+    const closeServiceBtn = document.getElementById('closeServiceModal');
+    
+    serviceModal.classList.add('active');
 
-            // Pedir nome do cliente
-            const nome = prompt('Digite seu nome:');
-            if (!nome) return;
-
-            // Pedir telefone
-            const telefone = prompt('Digite seu telefone (apenas números):');
-            if (!telefone) return;
-
-            // Validar formato do telefone (apenas números)
-            if (!/^\d+$/.test(telefone)) {
-                alert('Por favor, digite apenas números no telefone.');
-                return;
-            }
-
-            const servicoInfo = SERVICOS[servico];
-            const endDateTime = new Date(selectedDateTime.getTime() + servicoInfo.duracao * 60000);
-
-            try {
-                const { data, error } = await supabase
-                    .from('agendamentos')
-                    .insert([{
-                        start_time: selectedDateTime.toISOString(),
-                        end_time: endDateTime.toISOString(),
-                        cliente: nome,
-                        telefone: telefone,
-                        servico: servico
-                    }])
-                    .select();
-                    
-                if (error) throw error;
-                
-                alert(`Horário agendado com sucesso!\nServiço: ${servicoInfo.nome}\nValor: ${servicoInfo.preco}`);
-                timeSelectModal.classList.remove('active');
-                calendar.refetchEvents();
-            } catch (error) {
-                alert('Erro ao agendar: ' + error.message);
-            }
-        });
-    });
-
-    // Adicionar evento ao botão de fechar
-    const closeBtn = serviceModal.querySelector('.modal-btn.close');
-    closeBtn.addEventListener('click', () => {
-        serviceModal.remove();
-    });
+    // Evento para fechar modal de serviços
+    closeServiceBtn.onclick = () => {
+        serviceModal.classList.remove('active');
+        timeSelectModal.classList.add('active');
+    };
 
     // Fechar modal quando clicar fora
-    serviceModal.addEventListener('click', (e) => {
+    serviceModal.onclick = (e) => {
         if (e.target === serviceModal) {
-            serviceModal.remove();
+            serviceModal.classList.remove('active');
+            timeSelectModal.classList.add('active');
         }
+    };
+
+    // Adicionar eventos aos cards de serviço
+    serviceCards.forEach(card => {
+        card.onclick = async () => {
+            const servico = card.dataset.service;
+            const servicoInfo = SERVICOS[servico];
+            
+            // Fechar modal de serviços
+            serviceModal.classList.remove('active');
+
+            // Mostrar modal de informações do cliente
+            const clientInfoModal = document.getElementById('clientInfoModal');
+            const clientInfoForm = document.getElementById('clientInfoForm');
+            const cancelClientInfoBtn = document.getElementById('cancelClientInfo');
+            
+            clientInfoModal.classList.add('active');
+
+            // Evento de cancelamento
+            cancelClientInfoBtn.onclick = () => {
+                clientInfoModal.classList.remove('active');
+                clientInfoForm.reset();
+                timeSelectModal.classList.add('active');
+            };
+
+            // Evento de submissão do formulário
+            clientInfoForm.onsubmit = async (e) => {
+                e.preventDefault();
+
+                const nome = document.getElementById('clientName').value;
+                const telefone = document.getElementById('clientPhone').value;
+
+                // Validar formato do telefone (apenas números)
+                if (!/^\d+$/.test(telefone)) {
+                    alert('Por favor, digite apenas números no telefone.');
+                    return;
+                }
+
+                const endDateTime = new Date(selectedDateTime.getTime() + servicoInfo.duracao * 60000);
+
+                try {
+                    const { data, error } = await supabase
+                        .from('agendamentos')
+                        .insert([{
+                            start_time: selectedDateTime.toISOString(),
+                            end_time: endDateTime.toISOString(),
+                            cliente: nome,
+                            telefone: telefone,
+                            servico: servico
+                        }])
+                        .select();
+                        
+                    if (error) throw error;
+                    
+                    // Fechar modal de informações
+                    clientInfoModal.classList.remove('active');
+                    clientInfoForm.reset();
+
+                    // Mostrar modal de confirmação
+                    const confirmationModal = document.getElementById('confirmationModal');
+                    const serviceInfoEl = confirmationModal.querySelector('.service-info');
+                    const dateInfoEl = confirmationModal.querySelector('.date-info');
+                    const priceInfoEl = confirmationModal.querySelector('.price-info');
+
+                    serviceInfoEl.textContent = `Serviço: ${servicoInfo.nome}`;
+                    dateInfoEl.textContent = `Data: ${formatDateTime(selectedDateTime)}`;
+                    priceInfoEl.textContent = `Valor: ${servicoInfo.preco}`;
+
+                    confirmationModal.classList.add('active');
+
+                    // Configurar botão de fechar
+                    const closeConfirmationBtn = document.getElementById('closeConfirmation');
+                    closeConfirmationBtn.onclick = () => {
+                        confirmationModal.classList.remove('active');
+                        calendar.refetchEvents();
+                    };
+
+                } catch (error) {
+                    alert('Erro ao agendar: ' + error.message);
+                }
+            };
+        };
     });
 }
 
