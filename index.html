@@ -59,6 +59,9 @@
                 <button class="nav-btn" data-view="stats">
                     <i class="fas fa-chart-bar"></i> Estatísticas
                 </button>
+                <button class="nav-btn" data-view="schedule">
+                    <i class="fas fa-clock"></i> Gerenciar Horários
+                </button>
                 <button class="nav-btn logout" id="logoutBtn">
                     <i class="fas fa-sign-out-alt"></i> Sair
                 </button>
@@ -126,6 +129,66 @@
                         <div class="chart">
                             <h3>Agendamentos por Dia</h3>
                             <canvas id="daily-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visão de Gerenciamento de Horários -->
+                <div class="admin-view" id="schedule-view" style="display: none;">
+                    <div class="schedule-header">
+                        <h2>Gerenciamento de Horários</h2>
+                        <p class="schedule-info">Bloqueie dias e horários</p>
+                    </div>
+                    
+                    <div class="block-controls">
+                        <!-- Bloquear Dia -->
+                        <div class="block-section">
+                            <h3>Bloquear Dia</h3>
+                            <form id="blockDayForm" class="block-form">
+                                <input type="date" id="blockDate" required class="block-input">
+                                <button type="submit" class="block-btn">
+                                    <i class="fas fa-calendar-times"></i> Bloquear Dia
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Bloquear Horário -->
+                        <div class="block-section">
+                            <h3>Bloquear Horário</h3>
+                            <form id="blockTimeForm" class="block-form">
+                                <input type="date" id="blockTimeDate" required class="block-input">
+                                <select id="blockTime" required class="block-input">
+                                    <option value="">Selecione o horário</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="09:30">09:30</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="10:30">10:30</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="11:30">11:30</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="12:30">12:30</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="13:30">13:30</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="14:30">14:30</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="15:30">15:30</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="16:30">16:30</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="17:30">17:30</option>
+                                </select>
+                                <button type="submit" class="block-btn">
+                                    <i class="fas fa-clock"></i> Bloquear Horário
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="blocked-times-container">
+                        <h3>Horários Bloqueados</h3>
+                        <div id="blocked-times-list" class="blocked-times-list">
+                            <!-- Lista de horários bloqueados será inserida aqui dinamicamente -->
                         </div>
                     </div>
                 </div>
@@ -289,7 +352,8 @@
         </div>
     </footer>
 
-    <script src="app.js"></script>
-    <script src="admin.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js"></script>
+    <script src="app.js" defer></script>
+    <script src="admin.js" defer></script>
 </body>
 </html> 

@@ -49,6 +49,164 @@ const adminViews = document.querySelectorAll('.admin-view');
 let searchInput, dateFilter, serviceFilter, appointmentsList;
 let currentAppointments = [];
 
+// Gerenciamento de horários bloqueados
+let selectedDate = null;
+const timeBlocks = [
+    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
+    '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'
+];
+
+// Funções de bloqueio de horários
+async function handleBlockDay(event) {
+    event.preventDefault();
+    console.log('Tentando bloquear dia...');
+
+    const date = document.getElementById('blockDate').value;
+    if (!date) {
+        alert('Por favor, selecione uma data');
+        return;
+    }
+
+    try {
+        const startTime = new Date(date);
+        startTime.setHours(0, 0, 0, 0);
+        
+        const endTime = new Date(date);
+        endTime.setHours(23, 59, 59, 999);
+
+        console.log('Enviando dados para o banco:', {
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            is_all_day: true
+        });
+
+        const { data, error } = await supabase
+            .from('blocked_times')
+            .insert([{
+                start_time: startTime.toISOString(),
+                end_time: endTime.toISOString(),
+                is_all_day: true
+            }]);
+
+        if (error) {
+            console.error('Erro ao bloquear dia:', error);
+            throw error;
+        }
+
+        console.log('Dia bloqueado com sucesso:', data);
+        alert('Dia bloqueado com sucesso!');
+        document.getElementById('blockDate').value = '';
+        loadBlockedTimes();
+    } catch (error) {
+        console.error('Erro ao bloquear dia:', error);
+        alert('Erro ao bloquear dia: ' + error.message);
+    }
+}
+
+async function handleBlockTime(event) {
+    event.preventDefault();
+    console.log('Tentando bloquear horário...');
+
+    const date = document.getElementById('blockTimeDate').value;
+    const time = document.getElementById('blockTime').value;
+
+    if (!date || !time) {
+        alert('Por favor, preencha todos os campos');
+        return;
+    }
+
+    try {
+        const startTime = new Date(`${date}T${time}`);
+        const endTime = new Date(startTime);
+        endTime.setMinutes(startTime.getMinutes() + 30); // Bloqueia 30 minutos
+
+        console.log('Enviando dados para o banco:', {
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            is_all_day: false
+        });
+
+        const { data, error } = await supabase
+            .from('blocked_times')
+            .insert([{
+                start_time: startTime.toISOString(),
+                end_time: endTime.toISOString(),
+                is_all_day: false
+            }]);
+
+        if (error) {
+            console.error('Erro ao bloquear horário:', error);
+            throw error;
+        }
+
+        console.log('Horário bloqueado com sucesso:', data);
+        alert('Horário bloqueado com sucesso!');
+        document.getElementById('blockTimeDate').value = '';
+        document.getElementById('blockTime').value = '';
+        loadBlockedTimes();
+    } catch (error) {
+        console.error('Erro ao bloquear horário:', error);
+        alert('Erro ao bloquear horário: ' + error.message);
+    }
+}
+
+async function loadBlockedTimes() {
+    try {
+        console.log('Carregando horários bloqueados...');
+        
+        const { data: blockedTimes, error } = await supabase
+            .from('blocked_times')
+            .select('*')
+            .order('start_time', { ascending: true });
+
+        if (error) {
+            console.error('Erro ao buscar horários bloqueados:', error);
+            throw error;
+        }
+
+        console.log('Horários bloqueados recebidos:', blockedTimes);
+
+        const blockedList = document.getElementById('blocked-times-list');
+        if (!blockedList) {
+            console.warn('Elemento blocked-times-list não encontrado');
+            return;
+        }
+
+        blockedList.innerHTML = '';
+        
+        if (blockedTimes && blockedTimes.length > 0) {
+            blockedTimes.forEach(block => {
+                const startDate = new Date(block.start_time);
+                const endDate = new Date(block.end_time);
+                
+                const listItem = document.createElement('div');
+                listItem.className = 'blocked-time-item';
+                
+                const dateText = block.is_all_day 
+                    ? `Dia inteiro: ${formatDate(startDate)}`
+                    : `${formatDate(startDate)} - ${formatTime(startDate)} até ${formatTime(endDate)}`;
+                
+                listItem.innerHTML = `
+                    <div class="block-info">
+                        <span class="block-date">${dateText}</span>
+                    </div>
+                    <button onclick="removeBlockedTime('${block.id}')" class="remove-block-btn">
+                        <i class="fas fa-trash"></i> Remover
+                    </button>
+                `;
+                
+                blockedList.appendChild(listItem);
+            });
+        } else {
+            blockedList.innerHTML = '<p class="no-blocks">Nenhum horário bloqueado</p>';
+        }
+    } catch (error) {
+        console.error('Erro ao carregar horários bloqueados:', error);
+        alert('Erro ao carregar horários bloqueados: ' + error.message);
+    }
+}
+
 // Verificar se já está logado
 function checkAdminStatus() {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
@@ -143,6 +301,7 @@ function formatDateTime(dateString) {
 navButtons.forEach(btn => {
     btn.addEventListener('click', () => {
         const viewId = btn.dataset.view;
+        console.log('Mudando para view:', viewId);
         
         navButtons.forEach(b => b.classList.remove('active'));
         adminViews.forEach(view => view.style.display = 'none');
@@ -156,12 +315,49 @@ navButtons.forEach(btn => {
             loadAppointments();
         } else if (viewId === 'stats') {
             loadStatistics();
+        } else if (viewId === 'schedule') {
+            console.log('Inicializando controles de bloqueio...');
+            initializeBlockControls();
         }
     });
 });
 
+// Inicializar os controles de bloqueio
+function initializeBlockControls() {
+    console.log('Inicializando controles de bloqueio...');
+    
+    const blockDayForm = document.getElementById('blockDayForm');
+    const blockTimeForm = document.getElementById('blockTimeForm');
+
+    if (blockDayForm) {
+        blockDayForm.addEventListener('submit', handleBlockDay);
+    }
+
+    if (blockTimeForm) {
+        blockTimeForm.addEventListener('submit', handleBlockTime);
+    }
+
+    // Definir data mínima como hoje para os inputs de data
+    const today = new Date().toISOString().split('T')[0];
+    const dateInputs = ['blockDate', 'blockTimeDate'];
+    
+    dateInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.min = today;
+        }
+    });
+
+    // Carregar bloqueios iniciais
+    loadBlockedTimes();
+    
+    console.log('Controles de bloqueio inicializados');
+}
+
 // Inicialização quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado, iniciando configuração...');
+    
     // Verificar status de admin
     checkAdminStatus();
 
@@ -171,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
     serviceFilter = document.getElementById('service-filter');
     appointmentsList = document.querySelector('.appointments-list');
 
-    // Adicionar event listeners
+    // Adicionar event listeners para filtros
     if (searchInput) {
         searchInput.addEventListener('input', () => {
             console.log('Search input:', searchInput.value);
@@ -440,4 +636,114 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     calendar.render();
-}); 
+});
+
+// Função auxiliar para formatar horário
+function formatTime(date) {
+    return new Intl.DateTimeFormat('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(date);
+}
+
+// Atualizar a função generateTimeSlots para verificar horários bloqueados
+async function generateTimeSlots(date) {
+    const timeSlots = document.querySelector('.time-slots');
+    if (!timeSlots) return;
+
+    timeSlots.innerHTML = '';
+    const startHour = 9;
+    const endHour = 18;
+    
+    try {
+        // Buscar agendamentos e horários bloqueados do dia
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+        
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        const [agendamentosResponse, blockedTimesResponse] = await Promise.all([
+            supabase
+                .from('agendamentos')
+                .select('*')
+                .gte('start_time', startOfDay.toISOString())
+                .lte('start_time', endOfDay.toISOString()),
+            supabase
+                .from('blocked_times')
+                .select('*')
+                .or(`and(start_time.lte.${endOfDay.toISOString()},end_time.gte.${startOfDay.toISOString()})`)
+        ]);
+
+        const agendamentos = agendamentosResponse.data || [];
+        const blockedTimes = blockedTimesResponse.data || [];
+
+        // Verificar se o dia inteiro está bloqueado
+        const isDayBlocked = blockedTimes.some(block => block.is_all_day);
+        if (isDayBlocked) {
+            timeSlots.innerHTML = '<p class="blocked-message">Este dia está bloqueado</p>';
+            return;
+        }
+
+        for (let hour = startHour; hour < endHour; hour++) {
+            for (let minute of ['00', '30']) {
+                const timeString = `${hour.toString().padStart(2, '0')}:${minute}`;
+                const slotTime = new Date(date);
+                slotTime.setHours(hour, parseInt(minute), 0, 0);
+
+                // Verificar se o horário está ocupado ou bloqueado
+                const isOccupied = agendamentos.some(agendamento => {
+                    const agendamentoStart = new Date(agendamento.start_time);
+                    const agendamentoEnd = new Date(agendamento.end_time);
+                    return slotTime >= agendamentoStart && slotTime < agendamentoEnd;
+                });
+
+                const isBlocked = blockedTimes.some(block => {
+                    const blockStart = new Date(block.start_time);
+                    const blockEnd = new Date(block.end_time);
+                    return slotTime >= blockStart && slotTime < blockEnd;
+                });
+
+                const timeSlot = document.createElement('button');
+                timeSlot.className = `time-slot ${isOccupied || isBlocked ? 'occupied' : ''}`;
+                timeSlot.innerHTML = `
+                    <i class="fas ${isOccupied ? 'fa-calendar-check' : isBlocked ? 'fa-lock' : 'fa-clock'}"></i>
+                    ${timeString}
+                `;
+
+                if (!isOccupied && !isBlocked) {
+                    timeSlot.addEventListener('click', () => handleTimeSelection(date, timeString));
+                }
+
+                timeSlots.appendChild(timeSlot);
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao gerar horários:', error);
+        timeSlots.innerHTML = '<p class="error-message">Erro ao carregar horários</p>';
+    }
+}
+
+// Função para remover bloqueio
+window.removeBlockedTime = async function(id) {
+    try {
+        console.log('Tentando remover bloqueio:', id);
+        
+        const { error } = await supabase
+            .from('blocked_times')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Erro ao remover bloqueio:', error);
+            throw error;
+        }
+
+        console.log('Bloqueio removido com sucesso');
+        alert('Bloqueio removido com sucesso!');
+        loadBlockedTimes();
+    } catch (error) {
+        console.error('Erro ao remover bloqueio:', error);
+        alert('Erro ao remover bloqueio: ' + error.message);
+    }
+}; 
